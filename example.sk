@@ -7,6 +7,12 @@ int TUPLE = 4;
 int STRING = 5;
 int DICTIONARY = 6;
 
+bit choiceModIfConditionFalse0 = 0;
+bit choiceModIfConditionFalse1 = 0;
+bit choiceModIncrementRangeStart0 = 0;
+bit choiceModRetVal0 = 0;
+bit choiceModRetVal1 = 0;
+
 /* MultiType struct definitions. */
 struct MTList {
     int len;
@@ -23,30 +29,61 @@ struct MultiType {
     MTList lst;
 }
 
-// TODO: Use translation technique described by the paper and update
+// TODO: Use translation technique closer to the one described by the paper and update
 // hole value functions accordingly.
 
-/* Translated student code. */
-harness MultiType computeDeriv(int _len, int[_len] _poly) {
+/* Harness. */
+harness void main(int _len, int[_len] _poly) {
+    if (_len <= 0) {
+        // Not supposed to handle this case.
+        return;
+    }
+
+    MultiType referenceResult = computeDerivReference(_len, _poly);
+    MultiType studentResult = computeDerivStudent(_len, _poly);
+
+    MultiType areEqual = equalMT(studentResult, referenceResult);
+
+    assert areEqual.flag == BOOL;
+    assert areEqual.bval;
+}
+
+/* Reference implementation (hand-written in theory). */
+MultiType computeDerivReference(int _len, int[_len] _poly) {
+    MultiType[_len] result;
+
+    for (int i = 0; i < _len; i++) {
+        result[i] = new MultiType(val = i * _poly[i], flag = INTEGER);
+    }
+
+    if (_len == 1) {
+        return new MultiType(lst = new MTList(lVals = result, len = _len), flag = LIST);
+    } else {
+        return new MultiType(lst = new MTList(lVals = result[1::(_len - 1)], len = _len - 1), flag = LIST);
+    }
+}
+
+/* Translated student code (auto-translated in theory). */
+MultiType computeDerivStudent(int _len, int[_len] _poly) {
     MultiType poly = listToMT(_len, (i) -> intToMT(_poly[i]));
     MultiType deriv = new MultiType(lst = new MTList(len = 0), flag = LIST);
     MultiType zero = new MultiType(val = 0, flag = INTEGER);
 
-    if (modIfConditionFalse(equalMT(lenMT(poly), new MultiType(val = 1, flag = INTEGER)))) {
+    if (modIfConditionFalse0(equalMT(lenMT(poly), new MultiType(val = 1, flag = INTEGER)))) {
         return modRetVal0(deriv);
     }
 
     void forBody0(MultiType e) {
-        if (modIfConditionFalse(equalMT(indexMT(poly, e), new MultiType(val = 0, flag = INTEGER)))) {
+        if (modIfConditionFalse1(equalMT(indexMT(poly, e), new MultiType(val = 0, flag = INTEGER)))) {
             zero = addMT(zero, new MultiType(val = 1, flag = INTEGER));
         } else {
-            deriv = addMT(deriv, new MultiType(lst = new MTList(lVals = { poly }, len = 1), flag = LIST));
+            deriv = addMT(deriv, new MultiType(lst = new MTList(lVals = { mulMT(indexMT(poly, e), e) }, len = 1), flag = LIST));
         }
     }
 
-    forMT(rangeMT(modIncrementRangeStart(new MultiType(val = 0, flag = INTEGER)), lenMT(poly)), forBody0);
+    forMT(rangeMT(modIncrementRangeStart0(new MultiType(val = 0, flag = INTEGER)), lenMT(poly)), forBody0);
 
-    return modRetVal0(deriv);
+    return modRetVal1(deriv);
 }
 
 /* Conversion functions. */
@@ -64,27 +101,43 @@ MultiType listToMT(int n, fun convert) {
     return new MultiType(lst = list, flag = LIST);
 }
 
-/* Hole value functions. */
-bit modIfConditionFalse(MultiType condition) {
-    // TODO: This implementation could be problematic due to evaluating the input condition,
-    // even if it's not the one used. Fix this after switching to the paper's
-    // translation technique.
+// TODO: The "modIfConditionFalse" implementation could be problematic due to evaluating the
+// input condition, even if it's not the one used. Fix this after switching to the paper's
+// translation technique.
 
+/* Hole value functions. */
+bit modIfConditionFalse0(MultiType condition) {
     assert condition.flag == BOOL;
 
     if (??) {
         return condition.bval;
     }
 
+    choiceModIfConditionFalse0 = 1;
+
     return 0;
 }
 
-MultiType modIncrementRangeStart(MultiType rangeStart) {
+bit modIfConditionFalse1(MultiType condition) {
+    assert condition.flag == BOOL;
+
+    if (??) {
+        return condition.bval;
+    }
+
+    choiceModIfConditionFalse1 = 1;
+
+    return 0;
+}
+
+MultiType modIncrementRangeStart0(MultiType rangeStart) {
     assert rangeStart.flag == INTEGER;
 
     if (??) {
         return rangeStart;
     }
+
+    choiceModIncrementRangeStart0 = 1;
 
     return new MultiType(val = rangeStart.val + 1, flag = INTEGER);
 }
@@ -93,6 +146,19 @@ MultiType modRetVal0(MultiType a) {
     if (??) {
         return a;
     }
+
+    choiceModRetVal0 = 1;
+
+    MTList list = new MTList(lVals = { new MultiType(val = 0, flag = INTEGER) }, len = 1);
+    return new MultiType(lst = list, flag = LIST);
+}
+
+MultiType modRetVal1(MultiType a) {
+    if (??) {
+        return a;
+    }
+
+    choiceModRetVal1 = 1;
 
     MTList list = new MTList(lVals = { new MultiType(val = 0, flag = INTEGER) }, len = 1);
     return new MultiType(lst = list, flag = LIST);
@@ -106,10 +172,30 @@ bit bitMT(MultiType a) {
 }
 
 MultiType equalMT(MultiType a, MultiType b) {
-    assert a.flag == b.flag;
+    if (a.flag != b.flag) {
+        return new MultiType(bval = 0, flag = BOOL);
+    }
 
     if (a.flag == INTEGER) {
         return new MultiType(bval = a.val == b.val, flag = BOOL);
+    }
+    
+    if (a.flag == LIST) {
+        if (a.lst.len != b.lst.len) {
+            return new MultiType(bval = 0, flag = BOOL);
+        }
+
+        for (int i = 0; i < a.lst.len; i++) {
+            MultiType areEqual = equalMT(a.lst.lVals[i], b.lst.lVals[i]);
+
+            assert areEqual.flag == BOOL;
+
+            if (!areEqual.bval) {
+                return new MultiType(bval = 0, flag = BOOL);
+            }
+        }
+
+        return new MultiType(bval = 1, flag = BOOL);
     }
 
     // TODO: Other flags.
@@ -134,6 +220,16 @@ MultiType addMT(MultiType a, MultiType b) {
 
         return new MultiType(lst = new MTList(lVals = newLVals, len = newLen), flag = LIST);
     }
+
+    assert 0; // Should never get here.
+}
+
+MultiType mulMT(MultiType a, MultiType b) {
+    assert a.flag == b.flag;
+
+    if (a.flag == INTEGER) {
+        return new MultiType(val = a.val * b.val, flag = INTEGER);
+    }
 }
 
 MultiType rangeMT(MultiType start, MultiType stop) {
@@ -147,7 +243,7 @@ MultiType rangeMT(MultiType start, MultiType stop) {
     MultiType[n] vals;
 
     for (int i = 0; i < n; i++) {
-        vals[i] = new MultiType(val = i, flag = INTEGER);
+        vals[i] = new MultiType(val = i + start.val, flag = INTEGER);
     }
 
     return new MultiType(lst = new MTList(lVals = vals, len = n), flag = LIST);
