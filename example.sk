@@ -1,0 +1,176 @@
+/* MultiType flags */
+int INTEGER = 0;
+int BOOL = 1;
+int TYPE = 2;
+int LIST = 3;
+int TUPLE = 4;
+int STRING = 5;
+int DICTIONARY = 6;
+
+/* MultiType struct definitions. */
+struct MTList {
+    int len;
+    MultiType[len] lVals;
+}
+
+struct MultiType {
+    int val;
+    int flag;
+    bit bval;
+    //TODO: MTString str;
+    //TODO: MTTuple tup;
+    //TODO: MTDict dict;
+    MTList lst;
+}
+
+// TODO: Use translation technique described by the paper and update
+// hole value functions accordingly.
+
+/* Translated student code. */
+harness MultiType computeDeriv(int _len, int[_len] _poly) {
+    MultiType poly = listToMT(_len, (i) -> intToMT(_poly[i]));
+    MultiType deriv = new MultiType(lst = new MTList(len = 0), flag = LIST);
+    MultiType zero = new MultiType(val = 0, flag = INTEGER);
+
+    if (modIfConditionFalse(equalMT(lenMT(poly), new MultiType(val = 1, flag = INTEGER)))) {
+        return modRetVal0(deriv);
+    }
+
+    void forBody0(MultiType e) {
+        if (modIfConditionFalse(equalMT(indexMT(poly, e), new MultiType(val = 0, flag = INTEGER)))) {
+            zero = addMT(zero, new MultiType(val = 1, flag = INTEGER));
+        } else {
+            deriv = addMT(deriv, new MultiType(lst = new MTList(lVals = { poly }, len = 1), flag = LIST));
+        }
+    }
+
+    forMT(rangeMT(modIncrementRangeStart(new MultiType(val = 0, flag = INTEGER)), lenMT(poly)), forBody0);
+
+    return modRetVal0(deriv);
+}
+
+/* Conversion functions. */
+MultiType intToMT(int i) {
+    return new MultiType(val = i, flag = INTEGER);
+}
+
+MultiType listToMT(int n, fun convert) {
+    MTList list = new MTList(len = n);
+
+    for (int i = 0; i < n; i++) {
+        list.lVals[i] = convert(i);
+    }
+
+    return new MultiType(lst = list, flag = LIST);
+}
+
+/* Hole value functions. */
+bit modIfConditionFalse(MultiType condition) {
+    // TODO: This implementation could be problematic due to evaluating the input condition,
+    // even if it's not the one used. Fix this after switching to the paper's
+    // translation technique.
+
+    assert condition.flag == BOOL;
+
+    if (??) {
+        return condition.bval;
+    }
+
+    return 0;
+}
+
+MultiType modIncrementRangeStart(MultiType rangeStart) {
+    assert rangeStart.flag == INTEGER;
+
+    if (??) {
+        return rangeStart;
+    }
+
+    return new MultiType(val = rangeStart.val + 1, flag = INTEGER);
+}
+
+MultiType modRetVal0(MultiType a) {
+    if (??) {
+        return a;
+    }
+
+    MTList list = new MTList(lVals = { new MultiType(val = 0, flag = INTEGER) }, len = 1);
+    return new MultiType(lst = list, flag = LIST);
+}
+
+/* MT operations. */
+bit bitMT(MultiType a) {
+    assert a.flag == BOOL;
+
+    return a.bval;
+}
+
+MultiType equalMT(MultiType a, MultiType b) {
+    assert a.flag == b.flag;
+
+    if (a.flag == INTEGER) {
+        return new MultiType(bval = a.val == b.val, flag = BOOL);
+    }
+
+    // TODO: Other flags.
+
+    assert 0; // Should never get here.
+}
+
+MultiType addMT(MultiType a, MultiType b) {
+    assert a.flag == b.flag;
+
+    if (a.flag == INTEGER) {
+        return new MultiType(val = a.val + b.val, flag = INTEGER);
+    }
+
+    if (a.flag == LIST) {
+        int newLen = a.lst.len + b.lst.len;
+        MultiType[newLen] newLVals = a.lst.lVals;
+
+        for (int i = 0; i < b.lst.len; i++) {
+            newLVals[i + a.lst.len] = b.lst.lVals[i];
+        }
+
+        return new MultiType(lst = new MTList(lVals = newLVals, len = newLen), flag = LIST);
+    }
+}
+
+MultiType rangeMT(MultiType start, MultiType stop) {
+    assert start.flag == INTEGER;
+    assert stop.flag == INTEGER;
+
+    int n = stop.val - start.val;
+
+    assert n >= 0; // TODO: Custom step amount.
+
+    MultiType[n] vals;
+
+    for (int i = 0; i < n; i++) {
+        vals[i] = new MultiType(val = i, flag = INTEGER);
+    }
+
+    return new MultiType(lst = new MTList(lVals = vals, len = n), flag = LIST);
+}
+
+void forMT(MultiType list, fun body) {
+    assert list.flag == LIST;
+
+    for (int i = 0; i < list.lst.len; i++) {
+        body(list.lst.lVals[i]);
+    }
+}
+
+MultiType indexMT(MultiType list, MultiType index) {
+    assert list.flag == LIST;
+    assert index.flag == INTEGER;
+    assert index.val >= 0 && index.val < list.lst.len; // TODO: Negative indexing.
+
+    return list.lst.lVals[index.val];
+}
+
+MultiType lenMT(MultiType list) {
+    assert list.flag == LIST;
+
+    return new MultiType(val = list.lst.len, flag = INTEGER);
+}
